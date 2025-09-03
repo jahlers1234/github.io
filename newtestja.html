@@ -1,0 +1,1407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ahlers Arcade Scoreboard</title>
+    <style>
+        :root {
+            --primary-color: #00ffcc;
+            --secondary-color: #00aaff;
+            --background-gradient: linear-gradient(45deg, #1a1a1a, #002244, #1a1a1a);
+        }
+        :root.theme-pink {
+            --primary-color: #FF2079;
+            --secondary-color: #C71585;
+            --background-gradient: linear-gradient(45deg, #1a1a1a, #4B0082, #1a1a1a);
+        }
+        body {
+            font-family: 'Orbitron', sans-serif;
+            background: var(--background-gradient);
+            background-size: 400%;
+            animation: gradientShift 15s ease infinite;
+            margin: 0;
+            padding: 10px;
+            color: #fff;
+            overflow: hidden;
+            zoom: 0.98;
+        }
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .container {
+            width: 98vw;
+            height: 95vh;
+            margin: 10px auto;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 0 25px var(--primary-color), inset 0 0 12px var(--secondary-color);
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .cyber-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><path d="M0 0v100h100V0H0zm5 5h90v90H5V5z" fill="none" stroke="rgba(0,255,204,0.2)" stroke-width="0.5"/></svg>') repeat;
+            opacity: 0.3;
+            z-index: 1;
+            animation: gridPulse 10s infinite;
+        }
+        @keyframes gridPulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.5; }
+        }
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            font-size: 34px;
+            margin: 10px 0;
+            text-shadow: 0 0 15px var(--primary-color), 0 0 25px var(--secondary-color);
+            animation: glow 2s ease-in-out infinite;
+        }
+        @keyframes glow {
+            0%, 100% { text-shadow: 0 0 15px var(--primary-color), 0 0 25px var(--secondary-color); }
+            50% { text-shadow: 0 0 25px var(--primary-color), 0 0 35px var(--secondary-color); }
+        }
+        .tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 12px 30px;
+            cursor: pointer;
+            background: rgba(var(--secondary-color-rgb, 0, 170, 255), 0.2);
+            margin: 0 6px;
+            border-radius: 8px;
+            font-size: 18px;
+            transition: all 0.3s;
+            border: 1px solid var(--primary-color);
+            text-shadow: 0 0 5px var(--primary-color);
+        }
+        .tab:hover {
+            background: var(--secondary-color);
+            box-shadow: 0 0 15px var(--secondary-color);
+            transform: translateY(-2px);
+        }
+        .tab.active {
+            background: var(--primary-color);
+            color: #000;
+            box-shadow: 0 0 20px var(--primary-color);
+            text-shadow: none;
+        }
+        .tab.hidden {
+            display: none;
+        }
+        .league {
+            display: none;
+            flex-grow: 1;
+            max-height: 80vh;
+            overflow-y: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .league::-webkit-scrollbar {
+            display: none;
+        }
+        .league.active {
+            display: block;
+        }
+        #nfl-scores, #mlb-scores, #ncaab-scores, #nba-scores, #dgpt, #video {
+            overflow-y: auto;
+            max-height: 80vh;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        #nfl-scores::-webkit-scrollbar, #mlb-scores::-webkit-scrollbar, #ncaab-scores::-webkit-scrollbar, #nba-scores::-webkit-scrollbar, #dgpt::-webkit-scrollbar, #video::-webkit-scrollbar {
+            display: none;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        .section h2 {
+            color: var(--primary-color);
+            font-size: 24px;
+            text-align: center;
+            text-shadow: 0 0 15px var(--primary-color);
+        }
+        .game {
+            display: flex;
+            flex-direction: column;
+            background: rgba(0, 0, 0, 0.3);
+            margin: 15px 0;
+            padding: 25px;
+            border-radius: 10px;
+            border: 1px solid var(--secondary-color);
+            box-shadow: 0 0 15px rgba(var(--secondary-color-rgb, 0, 170, 255), 0.5);
+            transition: transform 0.3s;
+            min-height: 180px;
+        }
+        .game:hover {
+            transform: scale(1.02);
+        }
+        .teams-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+        .team {
+            display: flex;
+            align-items: center;
+            width: 45%;
+            font-size: 20px;
+        }
+        .team.away {
+            justify-content: flex-end;
+        }
+        .team img {
+            width: 45px;
+            height: 45px;
+            margin: 0 15px;
+            filter: drop-shadow(0 0 5px var(--primary-color));
+        }
+        .rank, .record {
+            font-size: 14px;
+            margin: 0 5px;
+            color: var(--primary-color);
+            text-shadow: 0 0 5px var(--primary-color);
+        }
+        .score {
+            font-size: 28px;
+            font-weight: bold;
+            margin: 0 25px;
+            color: var(--primary-color);
+            text-shadow: 0 0 10px var(--primary-color);
+            transition: transform 0.3s;
+        }
+        .score.live {
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+            100% { transform: scale(1); }
+        }
+        .info-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            width: 100%;
+        }
+        .status {
+            text-align: center;
+            font-size: 18px;
+            color: var(--secondary-color);
+            text-shadow: 0 0 5px var(--secondary-color);
+            flex: 1;
+        }
+        .channel, .time {
+            font-size: 16px;
+            color: #fff;
+            text-shadow: 0 0 5px var(--secondary-color);
+            flex: 1;
+            text-align: center;
+        }
+        .stats {
+            text-align: center;
+            font-size: 16px;
+            color: #fff;
+            margin-top: 8px;
+            text-shadow: 0 0 5px var(--secondary-color);
+        }
+        .diamond {
+            width: 80px;
+            height: 60px;
+            margin: 10px auto;
+        }
+        .base {
+            fill: none;
+            stroke: #fff;
+            stroke-width: 2;
+        }
+        .base.active {
+            fill: var(--primary-color);
+        }
+        .no-games {
+            text-align: center;
+            color: #aaa;
+            font-size: 18px;
+            text-shadow: 0 0 5px #aaa;
+        }
+        #fullscreen-btn {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            font-size: 0.8em;
+            padding: 2px;
+            background: transparent;
+            border: none;
+            color: #FF2079;
+            cursor: pointer;
+            text-shadow: 0 0 5px #00FF9F;
+            z-index: 2;
+        }
+        #fullscreen-btn:hover {
+            color: #00FF9F;
+            text-shadow: 0 0 10px #00FF9F;
+        }
+        #cycle-btn {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            font-size: 0.8em;
+            padding: 2px;
+            background: transparent;
+            border: none;
+            color: #FF2079;
+            cursor: pointer;
+            text-shadow: 0 0 5px #00FF9F;
+            z-index: 2;
+        }
+        #cycle-btn:hover {
+            color: #00FF9F;
+            text-shadow: 0 0 10px #00FF9F;
+        }
+        #theme-btn {
+            position: fixed;
+            top: 10px;
+            left: 50px;
+            font-size: 0.8em;
+            padding: 2px;
+            background: transparent;
+            border: none;
+            color: #FF2079;
+            cursor: pointer;
+            text-shadow: 0 0 5px #00FF9F;
+            z-index: 2;
+        }
+        #theme-btn:hover {
+            color: #00FF9F;
+            text-shadow: 0 0 10px #00FF9F;
+        }
+        #toggle-btn {
+            position: fixed;
+            top: 10px;
+            left: 90px;
+            font-size: 0.8em;
+            padding: 2px;
+            background: transparent;
+            border: none;
+            color: #FF2079;
+            cursor: pointer;
+            text-shadow: 0 0 5px #00FF9F;
+            z-index: 2;
+        }
+        #toggle-btn:hover {
+            color: #00FF9F;
+            text-shadow: 0 0 10px #00FF9F;
+        }
+        .schedule-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 10px;
+            border: 1px solid var(--secondary-color);
+            box-shadow: 0 0 15px rgba(var(--secondary-color-rgb, 0, 170, 255), 0.5);
+            margin: 15px 0;
+        }
+        .schedule-table th, .schedule-table td {
+            padding: 15px;
+            text-align: left;
+            font-size: 18px;
+            color: #fff;
+            text-shadow: 0 0 5px var(--secondary-color);
+            border-bottom: 1px solid rgba(var(--secondary-color-rgb, 0, 170, 255), 0.3);
+        }
+        .schedule-table th {
+            background: rgba(var(--secondary-color-rgb, 0, 170, 255), 0.2);
+            color: var(--primary-color);
+            text-shadow: 0 0 5px var(--primary-color);
+        }
+        .schedule-table tr:hover {
+            background: rgba(var(--secondary-color-rgb, 0, 170, 255), 0.1);
+        }
+        .countdown {
+            text-align: center;
+            font-size: 18px;
+            color: var(--primary-color);
+            text-shadow: 0 0 10px var(--primary-color);
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid var(--secondary-color);
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.8);
+        }
+        #video-player-container {
+            width: 98%;
+            height: 98%;
+            margin: auto;
+            border: 2px solid #FF2079;
+            box-shadow: 0 0 20px #FF2079;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.8);
+        }
+        #video-player {
+            width: 100%;
+            height: 100%;
+        }
+        @media (max-width: 768px) {
+            .game { min-height: 140px; }
+            .team { width: 100%; justify-content: center; margin: 8px 0; }
+            .team.away { justify-content: center; }
+            .score { font-size: 24px; }
+            .rank, .record { font-size: 12px; }
+            h1 { font-size: 30px; }
+            .tab { font-size: 16px; padding: 10px 25px; }
+            .team img { width: 40px; height: 40px; }
+            .league { max-height: 75vh; }
+            #nfl-scores, #mlb-scores, #ncaab-scores, #nba-scores, #dgpt, #video { max-height: 75vh; }
+            .channel, .time, .status { font-size: 14px; }
+            .stats { font-size: 14px; }
+            .diamond { width: 70px; height: 50px; }
+            .schedule-table th, .schedule-table td { font-size: 16px; padding: 10px; }
+            .countdown { font-size: 16px; }
+            #cycle-btn, #fullscreen-btn, #theme-btn, #toggle-btn { font-size: 0.7em; padding: 2px; }
+            #toggle-btn { left: 80px; }
+            #video-player-container { width: 95%; height: 95%; }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://www.youtube.com/iframe_api"></script>
+</head>
+<body>
+    <div class="cyber-grid"></div>
+    <button id="cycle-btn">🌐</button>
+    <button id="theme-btn">🌙</button>
+    <button id="toggle-btn">❌</button>
+    <button id="fullscreen-btn">📺</button>
+    <div class="container">
+        <h1>Ahlers Arcade Scoreboard</h1>
+        <div class="tabs">
+            <div class="tab active" data-league="ncaa">NCAA Football</div>
+            <div class="tab" data-league="nfl">NFL</div>
+            <div class="tab" data-league="mlb">MLB</div>
+            <div class="tab" data-league="ncaab">NCAAB</div>
+            <div class="tab" data-league="nba">NBA</div>
+            <div class="tab" data-league="dgpt">DGPT</div>
+            <div class="tab" data-league="video">Video</div>
+        </div>
+        <div id="ncaa" class="league active">
+            <div class="section" id="ncaa-current">
+                <h2>Live Now</h2>
+                <div id="ncaa-current-games"></div>
+            </div>
+            <div class="section" id="ncaa-upcoming">
+                <h2>Upcoming Big Games</h2>
+                <div id="ncaa-upcoming-games"></div>
+            </div>
+        </div>
+        <div id="nfl" class="league">
+            <div id="nfl-scores"></div>
+        </div>
+        <div id="mlb" class="league">
+            <div id="mlb-scores"></div>
+        </div>
+        <div id="ncaab" class="league">
+            <div class="section" id="ncaab-current">
+                <h2>Live Now</h2>
+                <div id="ncaab-current-games"></div>
+            </div>
+            <div class="section" id="ncaab-upcoming">
+                <h2>Upcoming Big Games</h2>
+                <div id="ncaab-upcoming-games"></div>
+            </div>
+        </div>
+        <div id="nba" class="league">
+            <div id="nba-scores"></div>
+        </div>
+        <div id="dgpt" class="league">
+            <div class="section">
+                <h2>2026 DGPT Schedule</h2>
+                <div id="countdown"></div>
+                <div id="dgpt-schedule"></div>
+            </div>
+        </div>
+        <div id="video" class="league">
+            <div id="video-player-container">
+                <div id="video-player"></div>
+            </div>
+        </div>
+    </div>
+<script>
+    var gk_isXlsx = false;
+    var gk_xlsxFileLookup = {};
+    var gk_fileData = {};
+    function filledCell(cell) {
+        return cell !== '' && cell != null;
+    }
+    function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                    row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                    headerRowIndex = 0;
+                }
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex));
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+    }
+    const fullscreenBtn = document.getElementById('fullscreen-btn');
+    fullscreenBtn.addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(err => console.log('Fullscreen error:', err));
+            fullscreenBtn.textContent = '⏹️';
+        } else {
+            document.exitFullscreen();
+            fullscreenBtn.textContent = '📺';
+        }
+    });
+    const cycleBtn = document.getElementById('cycle-btn');
+    let isCycling = false;
+    let scrollAnimationFrame = null;
+    const tabOrder = ['ncaa', 'nfl', 'mlb', 'ncaab', 'nba', 'dgpt', 'video'];
+    let currentTabIndex = 0;
+    let player;
+    let isFilterActive = false;
+    let leaguesWithGames = {};
+    const neonColorSchemes = [
+        { primary: '#00FFCC', secondary: '#00AAFF', gradient: 'linear-gradient(45deg, #1a1a1a, #002244, #1a1a1a)' },
+        { primary: '#FF2079', secondary: '#C71585', gradient: 'linear-gradient(45deg, #1a1a1a, #4B0082, #1a1a1a)' },
+        { primary: '#FF00FF', secondary: '#CC00CC', gradient: 'linear-gradient(45deg, #1a1a1a, #660066, #1a1a1a)' },
+        { primary: '#39FF14', secondary: '#00FF00', gradient: 'linear-gradient(45deg, #1a1a1a, #004400, #1a1a1a)' },
+        { primary: '#FF9900', secondary: '#FF6600', gradient: 'linear-gradient(45deg, #1a1a1a, #662200, #1a1a1a)' },
+        { primary: '#FFFF00', secondary: '#CCCC00', gradient: 'linear-gradient(45deg, #1a1a1a, #444400, #1a1a1a)' },
+        { primary: '#FF3333', secondary: '#CC0000', gradient: 'linear-gradient(45deg, #1a1a1a, #660000, #1a1a1a)' },
+        { primary: '#00FFFF', secondary: '#00CCCC', gradient: 'linear-gradient(45deg, #1a1a1a, #006666, #1a1a1a)' },
+        { primary: '#FF00AA', secondary: '#AA0077', gradient: 'linear-gradient(45deg, #1a1a1a, #550044, #1a1a1a)' },
+        { primary: '#33FF99', secondary: '#00CC66', gradient: 'linear-gradient(45deg, #1a1a1a, #003322, #1a1a1a)' },
+        { primary: '#FF66FF', secondary: '#CC33CC', gradient: 'linear-gradient(45deg, #FF66FF, #CC33CC, #FF66FF)' },
+        { primary: '#00FF99', secondary: '#00CC66', gradient: 'linear-gradient(45deg, #00FF99, #00CC66, #00FF99)' },
+        { primary: '#FF9933', secondary: '#FF6600', gradient: 'linear-gradient(45deg, #FF9933, #FF6600, #FF9933)' },
+        { primary: '#33CCFF', secondary: '#0099CC', gradient: 'linear-gradient(45deg, #33CCFF, #0099CC, #33CCFF)' }
+    ];
+    function setRandomNeonColors() {
+        const scheme = neonColorSchemes[Math.floor(Math.random() * neonColorSchemes.length)];
+        document.documentElement.style.setProperty('--primary-color', scheme.primary);
+        document.documentElement.style.setProperty('--secondary-color', scheme.secondary);
+        document.documentElement.style.setProperty('--background-gradient', scheme.gradient);
+        document.documentElement.classList.remove('theme-pink');
+        console.log('Applied neon color scheme:', scheme);
+    }
+    function onYouTubeIframeAPIReady() {
+        fetchLatestVideo();
+    }
+    async function fetchLatestVideo() {
+        const apiKey = 'AIzaSyCR0sWGnG9Ntp8lkhDhf-jl0NtIRGqPQdY';
+        const handle = '@nbadaily1141';
+        const fallbackChannelId = 'UCWJ2lWNubArHWmf3FIHbfcQ';
+        try {
+            let channelResponse = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=contentDetails&forHandle=${handle}&key=${apiKey}`);
+            let channelData = await channelResponse.json();
+            if (!channelData.items || channelData.items.length === 0) {
+                console.warn(`No channel found for handle: ${handle}, trying forUsername`);
+                const username = handle.replace('@', '');
+                channelResponse = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=contentDetails&forUsername=${username}&key=${apiKey}`);
+                channelData = await channelResponse.json();
+            }
+            if (!channelData.items || channelData.items.length === 0) {
+                console.warn(`No channel found for username: ${handle.replace('@', '')}, using fallback channel ID`);
+                channelResponse = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${fallbackChannelId}&key=${apiKey}`);
+                channelData = await channelResponse.json();
+            }
+            if (!channelData.items || channelData.items.length === 0) {
+                console.error('No channel found after all attempts');
+                document.getElementById('video-player-container').innerHTML = '<p class="no-games">Error: Channel not found. Please check the channel handle or try again later.</p>';
+                return;
+            }
+            const uploadsPlaylistId = channelData.items[0].contentDetails.relatedPlaylists.uploads;
+            const playlistResponse = await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsPlaylistId}&maxResults=1&key=${apiKey}`);
+            if (!playlistResponse.ok) throw new Error(`HTTP ${playlistResponse.status}`);
+            const playlistData = await playlistResponse.json();
+            if (!playlistData.items || playlistData.items.length === 0) {
+                console.error('No videos found in playlist:', uploadsPlaylistId);
+                document.getElementById('video-player-container').innerHTML = '<p class="no-games">Error: No videos found.</p>';
+                return;
+            }
+            const videoId = playlistData.items[0].snippet.resourceId.videoId;
+            player = new YT.Player('video-player', {
+                height: '100%',
+                width: '100%',
+                videoId: videoId,
+                playerVars: {
+                    'autoplay': 0,
+                    'controls': 1,
+                    'rel': 0,
+                    'showinfo': 0,
+                    'fs': 1
+                },
+                events: {
+                    'onReady': onPlayerReady,
+                    'onStateChange': onPlayerStateChange
+                }
+            });
+        } catch (error) {
+            console.error('Error fetching latest video:', error);
+            document.getElementById('video-player-container').innerHTML = '<p class="no-games">Error fetching video. Please try again later.</p>';
+        }
+    }
+    function onPlayerReady(event) {
+        if (document.getElementById('video').classList.contains('active') && isCycling) {
+            try {
+                event.target.playVideo();
+            } catch (err) {
+                console.error('Error starting video:', err);
+                if (isCycling) {
+                    currentTabIndex = (currentTabIndex + 1) % tabOrder.length;
+                    setTimeout(() => cycleTabsTo(currentTabIndex), 5000);
+                }
+            }
+        }
+    }
+    function onPlayerStateChange(event) {
+        if (event.data === YT.PlayerState.ENDED && isCycling) {
+            currentTabIndex = (currentTabIndex + 1) % tabOrder.length;
+            cycleTabsTo(currentTabIndex);
+        }
+    }
+function cycleTabsTo(index) {
+        if (!isCycling) return;
+        stopAutoScroll();
+        if (player && player.pauseVideo) {
+            try {
+                player.pauseVideo();
+            } catch (err) {
+                console.error('Error pausing video:', err);
+            }
+        }
+        document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.league').forEach(l => l.classList.remove('active'));
+        let nextIndex = index;
+        let attempts = 0;
+        const maxAttempts = tabOrder.length;
+        while (attempts < maxAttempts) {
+            const league = tabOrder[nextIndex];
+            const tab = document.querySelector(`.tab[data-league="${league}"]`);
+            if (!isFilterActive || league === 'dgpt' || league === 'video' || leaguesWithGames[league]) {
+                setRandomNeonColors();
+                tab.classList.add('active');
+                const leagueContainer = document.getElementById(league);
+                leagueContainer.classList.add('active');
+                const containerId = league === 'ncaa' ? 'ncaa' : league === 'nfl' ? 'nfl-scores' : league === 'mlb' ? 'mlb-scores' : league === 'ncaab' ? 'ncaab' : league === 'nba' ? 'nba-scores' : league === 'dgpt' ? 'dgpt' : 'video';
+                const duration = league === 'ncaa' || league === 'ncaab' ? 428400 : league === 'dgpt' ? 171360 : league === 'video' ? 30000 : 252000;
+                if (league === 'video') {
+                    if (player && player.playVideo && player.getPlayerState && player.getPlayerState() !== YT.PlayerState.UNSTARTED) {
+                        try {
+                            player.playVideo();
+                        } catch (err) {
+                            console.error('Error playing video:', err);
+                            currentTabIndex = (nextIndex + 1) % tabOrder.length;
+                            setTimeout(() => cycleTabsTo(currentTabIndex), 5000);
+                            return;
+                        }
+                        setTimeout(() => {
+                            currentTabIndex = (nextIndex + 1) % tabOrder.length;
+                            cycleTabsTo(currentTabIndex);
+                        }, duration);
+                        return;
+                    } else {
+                        console.error('Player not ready or unavailable');
+                        currentTabIndex = (nextIndex + 1) % tabOrder.length;
+                        setTimeout(() => cycleTabsTo(currentTabIndex), 5000);
+                        return;
+                    }
+                }
+                fetchScores(league).then(() => {
+                    const container = document.getElementById(containerId);
+                    if (!container) {
+                        console.error(`Container not found for ${containerId}`);
+                        currentTabIndex = (nextIndex + 1) % tabOrder.length;
+                        setTimeout(() => cycleTabsTo(currentTabIndex), 5000);
+                        return;
+                    }
+                    container.scrollTop = 0;
+                    const scrollDistance = container.scrollHeight - container.clientHeight;
+                    console.log(`Starting scroll for ${containerId}: scrollHeight=${container.scrollHeight}, clientHeight=${container.clientHeight}, scrollDistance=${scrollDistance}, duration=${duration}ms`);
+                    if (scrollDistance <= 0) {
+                        console.log(`No scrolling needed for ${containerId}`);
+                        currentTabIndex = (nextIndex + 1) % tabOrder.length;
+                        setTimeout(() => cycleTabsTo(currentTabIndex), 5000);
+                        return;
+                    }
+                    const startTime = performance.now();
+                    function scrollStep(timestamp) {
+                        if (!isCycling) return;
+                        const elapsed = timestamp - startTime;
+                        const progress = Math.min(elapsed / duration, 1);
+                        container.scrollTop = scrollDistance * progress;
+                        if (progress < 1) {
+                            scrollAnimationFrame = requestAnimationFrame(scrollStep);
+                        } else {
+                            currentTabIndex = (nextIndex + 1) % tabOrder.length;
+                            setTimeout(() => cycleTabsTo(currentTabIndex), 1000);
+                        }
+                    }
+                    scrollAnimationFrame = requestAnimationFrame(scrollStep);
+                }).catch(err => {
+                    console.error(`Error fetching scores for ${league}:`, err);
+                    currentTabIndex = (nextIndex + 1) % tabOrder.length;
+                    setTimeout(() => cycleTabsTo(currentTabIndex), 5000);
+                });
+                return;
+            }
+            nextIndex = (nextIndex + 1) % tabOrder.length;
+            attempts++;
+        }
+        console.warn('No visible tabs available for cycling');
+        isCycling = false;
+        cycleBtn.textContent = '🌐';
+    }
+    function cycleTabs() {
+        if (isCycling) {
+            isCycling = false;
+            stopAutoScroll();
+            if (player && player.pauseVideo) {
+                try {
+                    player.pauseVideo();
+                } catch (err) {
+                    console.error('Error pausing video:', err);
+                }
+            }
+            cycleBtn.textContent = '🌐';
+            console.log('Stopping cycle');
+            return;
+        }
+        isCycling = true;
+        cycleBtn.textContent = '⏹️';
+        console.log('Starting continuous cycle through tabs');
+        currentTabIndex = 0;
+        cycleTabsTo(currentTabIndex);
+    }
+    cycleBtn.addEventListener('click', cycleTabs);
+    const themeBtn = document.getElementById('theme-btn');
+    themeBtn.addEventListener('click', () => {
+        document.documentElement.classList.toggle('theme-pink');
+        console.log('Toggling theme to ' + (document.documentElement.classList.contains('theme-pink') ? 'pink' : 'blue'));
+    });
+    const toggleBtn = document.getElementById('toggle-btn');
+    toggleBtn.addEventListener('click', () => {
+        isFilterActive = !isFilterActive;
+        toggleBtn.textContent = isFilterActive ? '✔' : '❌';
+        updateTabVisibility();
+    });
+    function updateTabVisibility() {
+        const filterableLeagues = ['ncaa', 'nfl', 'mlb', 'ncaab', 'nba'];
+        document.querySelectorAll('.tabs .tab').forEach(tab => {
+            const league = tab.dataset.league;
+            if (filterableLeagues.includes(league) && isFilterActive) {
+                tab.classList.toggle('hidden', !leaguesWithGames[league]);
+                if (!leaguesWithGames[league] && tab.classList.contains('active')) {
+                    document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.league').forEach(l => l.classList.remove('active'));
+                    const ncaaTab = document.querySelector('.tab[data-league="ncaa"]');
+                    const videoTab = document.querySelector('.tab[data-league="video"]');
+                    if (leaguesWithGames['ncaa']) {
+                        ncaaTab.classList.add('active');
+                        document.getElementById('ncaa').classList.add('active');
+                        startAutoScroll('ncaa', 428400);
+                    } else {
+                        videoTab.classList.add('active');
+                        document.getElementById('video').classList.add('active');
+                        if (player && player.playVideo && player.getPlayerState && player.getPlayerState() !== YT.PlayerState.UNSTARTED) {
+                            try {
+                                player.playVideo();
+                            } catch (err) {
+                                console.error('Error playing video:', err);
+                            }
+                        }
+                    }
+                }
+            } else {
+                tab.classList.remove('hidden');
+            }
+        });
+    }
+    const leagues = {
+        ncaa: 'football/college-football',
+        nfl: 'football/nfl',
+        mlb: 'baseball/mlb',
+        ncaab: 'basketball/mens-college-basketball',
+        nba: 'basketball/nba',
+        dgpt: 'discgolf/mens-dgpt',
+        video: 'video'
+    };
+    function startAutoScroll(containerId, duration) {
+        if (scrollAnimationFrame) cancelAnimationFrame(scrollAnimationFrame);
+        const container = document.getElementById(containerId);
+        if (!container) {
+            console.error(`Container not found for ${containerId}`);
+            return;
+        }
+        container.scrollTop = 0;
+        const scrollDistance = container.scrollHeight - container.clientHeight;
+        console.log(`Starting scroll for ${containerId}: scrollHeight=${container.scrollHeight}, clientHeight=${container.clientHeight}, scrollDistance=${scrollDistance}, duration=${duration}ms`);
+        if (scrollDistance <= 0) {
+            console.log(`No scrolling needed for ${containerId}`);
+            return;
+        }
+        const startTime = performance.now();
+        function scrollStep(timestamp) {
+            if (!document.getElementById(containerId).classList.contains('active') || isCycling) return;
+            const elapsed = timestamp - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            container.scrollTop = scrollDistance * progress;
+            if (progress < 1) {
+                scrollAnimationFrame = requestAnimationFrame(scrollStep);
+            } else {
+                container.scrollTop = 0;
+                scrollAnimationFrame = requestAnimationFrame(scrollStep);
+            }
+        }
+        scrollAnimationFrame = requestAnimationFrame(scrollStep);
+    }
+    function stopAutoScroll() {
+        if (scrollAnimationFrame) {
+            cancelAnimationFrame(scrollAnimationFrame);
+            console.log('Scroll stopped');
+        }
+    }
+    function formatEasternTime(dateString, league) {
+        const date = new Date(dateString);
+        const time = date.toLocaleTimeString('en-US', {
+            timeZone: 'America/New_York',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+        });
+        const dateStr = date.toLocaleDateString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric' });
+        if (league === 'mlb') return `First Pitch: ${dateStr} at ${time}`;
+        if (league === 'ncaa' || league === 'nfl') return `Kickoff: ${dateStr} at ${time}`;
+        if (league === 'ncaab' || league === 'nba') return `Tip-off: ${dateStr} at ${time}`;
+        return `${dateStr} at ${time}`;
+    }
+    function formatRecord(record) {
+        return record ? `(${record})` : '';
+    }
+    function formatDateForESPN(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}${month}${day}`;
+    }
+    function isSameDay(date1, date2) {
+        return date1.getFullYear() === date2.getFullYear() &&
+               date1.getMonth() === date2.getMonth() &&
+               date1.getDate() === date2.getDate();
+    }
+    function filterTodayAndTomorrow(events) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(today.getDate() + 1);
+        return events.filter(event => {
+            const eventDate = new Date(event.date);
+            eventDate.setHours(0, 0, 0, 0);
+            return isSameDay(eventDate, today) || isSameDay(eventDate, tomorrow);
+        });
+    }
+    function updateDGPTCountdown() {
+        const countdownContainer = document.getElementById('countdown');
+        if (!countdownContainer) return;
+        const nextEventDate = new Date('2026-02-20T00:00:00-05:00');
+        const now = new Date();
+        const timeDiff = nextEventDate - now;
+        if (timeDiff <= 0) {
+            countdownContainer.innerHTML = '<div class="countdown">Supreme Flight Open is happening now!</div>';
+            return;
+        }
+        const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+        countdownContainer.innerHTML = `<div class="countdown">Next DGPT Event: Supreme Flight Open in ${days}d ${hours}h ${minutes}m</div>`;
+    }
+async function fetchNCAAGames() {
+        const currentDate = new Date();
+        currentDate.setHours(16, 10, 0, 0);
+        const futureDate = new Date(currentDate);
+        futureDate.setDate(currentDate.getDate() + 7);
+        const currentContainer = document.getElementById('ncaa-current-games');
+        const upcomingContainer = document.getElementById('ncaa-upcoming-games');
+        let hasGames = false;
+        try {
+            const currentUrl = `https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?dates=${formatDateForESPN(currentDate)}&groups=80`;
+            const currentResponse = await fetch(currentUrl);
+            if (!currentResponse.ok) throw new Error(`HTTP ${currentResponse.status}`);
+            const currentData = await currentResponse.json();
+            const currentGames = currentData.events?.filter(event => event.status.type.state === 'in') || [];
+            hasGames = currentGames.length > 0;
+            currentContainer.innerHTML = currentGames.length === 0 ? '<p class="no-games">No live Division I games today.</p>' : '';
+            currentGames.forEach(event => {
+                const gameDiv = document.createElement('div');
+                gameDiv.className = 'game';
+                const homeTeam = event.competitions[0].competitors.find(c => c.homeAway === 'home');
+                const awayTeam = event.competitions[0].competitors.find(c => c.homeAway === 'away');
+                const awayLogo = awayTeam.team.logo || 'https://placehold.co/40x40';
+                const homeLogo = homeTeam.team.logo || 'https://placehold.co/40x40';
+                const scoreClass = 'score live';
+                const awayRank = awayTeam.rank ? `#${awayTeam.rank}` : '';
+                const homeRank = homeTeam.rank ? `#${homeTeam.rank}` : '';
+                const awayRecord = formatRecord(awayTeam.records ? awayTeam.records[0]?.summary : '');
+                const homeRecord = formatRecord(homeTeam.records ? homeTeam.records[0]?.summary : '');
+                const away = `<div class="team away"><img src="${awayLogo}" alt="${awayTeam.team.displayName} logo"><span class="rank">${awayRank}</span>${awayTeam.team.displayName}<span class="record">${awayRecord}</span> <span class="${scoreClass}">${awayTeam.score || 0}</span></div>`;
+                const vs = `<div class="vs">@</div>`;
+                const home = `<div class="team"><img src="${homeLogo}" alt="${homeTeam.team.displayName} logo"><span class="rank">${homeRank}</span>${homeTeam.team.displayName}<span class="record">${homeRecord}</span> <span class="${scoreClass}">${homeTeam.score || 0}</span></div>`;
+                const channel = event.competitions[0].broadcasts?.[0]?.names?.join(', ') || 'TBD';
+                const situation = event.competitions[0].situation || {};
+                const quarter = situation.period ? `Q${situation.period}` : (event.status.type.description.toLowerCase().includes('overtime') ? 'OT' : event.status.type.shortDetail || 'Live');
+                const timeRemaining = event.status.displayClock || '';
+                const status = quarter;
+                const stats = timeRemaining ? `${timeRemaining}` : '';
+                gameDiv.innerHTML = `
+                    <div class="teams-container">${away} ${vs} ${home}</div>
+                    <div class="info-container">
+                        <div class="status">${status}</div>
+                        <div class="channel">Channel: ${channel}</div>
+                    </div>
+                    ${stats ? `<div class="stats">${stats}</div>` : ''}
+                `;
+                currentContainer.appendChild(gameDiv);
+            });
+            if (document.getElementById('ncaa').classList.contains('active') && !isCycling) {
+                startAutoScroll('ncaa', 428400);
+            }
+        } catch (error) {
+            console.error('Error fetching NCAA Football live games:', error);
+            currentContainer.innerHTML = '<p class="no-games">Error fetching live games.</p>';
+        }
+        try {
+            const upcomingUrl = `https://site.api.espn.com/apis/site/v2/sports/football/college-football/scoreboard?dates=${formatDateForESPN(currentDate)}-${formatDateForESPN(futureDate)}&groups=80`;
+            const upcomingResponse = await fetch(upcomingUrl);
+            if (!upcomingResponse.ok) throw new Error(`HTTP ${upcomingResponse.status}`);
+            const upcomingData = await upcomingResponse.json();
+            const upcomingGames = upcomingData.events?.filter(event => {
+                const competitors = event.competitions[0].competitors;
+                return competitors.some(c => c.rank && c.rank <= 25) || event.status.type.state === 'pre';
+            }) || [];
+            hasGames = hasGames || upcomingGames.length > 0;
+            leaguesWithGames['ncaa'] = hasGames;
+            if (upcomingGames.length === 0) {
+                try {
+                    const fallbackUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://fbschedules.com/college-football-schedule/');
+                    const fallbackResponse = await fetch(fallbackUrl);
+                    if (!fallbackResponse.ok) throw new Error(`HTTP ${fallbackResponse.status}`);
+                    const html = await fallbackResponse.text();
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const games = doc.querySelectorAll('.schedule-game');
+                    const fallbackGames = [];
+                    games.forEach(game => {
+                        const dateText = game.querySelector('.date')?.textContent.trim();
+                        const date = new Date(dateText);
+                        if (date >= currentDate && date <= futureDate) {
+                            const homeTeam = game.querySelector('.home-team')?.textContent.trim() || 'Unknown';
+                            const awayTeam = game.querySelector('.away-team')?.textContent.trim() || 'Unknown';
+                            const time = game.querySelector('.time')?.textContent.trim() || 'TBD';
+                            const channel = game.querySelector('.tv')?.textContent.trim() || 'TBD';
+                            fallbackGames.push({ homeTeam, awayTeam, time, channel });
+                        }
+                    });
+                    upcomingContainer.innerHTML = fallbackGames.length === 0 ? '<p class="no-games">No big games scheduled this week.</p>' : '';
+                    hasGames = hasGames || fallbackGames.length > 0;
+                    leaguesWithGames['ncaa'] = hasGames;
+                    fallbackGames.forEach(game => {
+                        const gameDiv = document.createElement('div');
+                        gameDiv.className = 'game';
+                        const away = `<div class="team away">${game.awayTeam}</div>`;
+                        const vs = `<div class="vs">@</div>`;
+                        const home = `<div class="team">${game.homeTeam}</div>`;
+                        gameDiv.innerHTML = `
+                            <div class="teams-container">${away} ${vs} ${home}</div>
+                            <div class="info-container">
+                                <div class="time">Kickoff: ${game.time}</div>
+                                <div class="channel">Channel: ${game.channel}</div>
+                            </div>
+                        `;
+                        upcomingContainer.appendChild(gameDiv);
+                    });
+                } catch (fallbackError) {
+                    console.error('Error fetching NCAA Football upcoming games from FBSchedules:', fallbackError);
+                    upcomingContainer.innerHTML = '<p class="no-games">Error fetching upcoming games.</p>';
+                }
+            } else {
+                upcomingContainer.innerHTML = '';
+                upcomingGames.forEach(event => {
+                    const gameDiv = document.createElement('div');
+                    gameDiv.className = 'game';
+                    const homeTeam = event.competitions[0].competitors.find(c => c.homeAway === 'home');
+                    const awayTeam = event.competitions[0].competitors.find(c => c.homeAway === 'away');
+                    const awayLogo = awayTeam.team.logo || 'https://placehold.co/40x40';
+                    const homeLogo = homeTeam.team.logo || 'https://placehold.co/40x40';
+                    const awayRank = awayTeam.rank ? `#${awayTeam.rank}` : '';
+                    const homeRank = homeTeam.rank ? `#${homeTeam.rank}` : '';
+                    const awayRecord = formatRecord(awayTeam.records ? awayTeam.records[0]?.summary : '');
+                    const homeRecord = formatRecord(homeTeam.records ? homeTeam.records[0]?.summary : '');
+                    const away = `<div class="team away"><img src="${awayLogo}" alt="${awayTeam.team.displayName} logo"><span class="rank">${awayRank}</span>${awayTeam.team.displayName}<span class="record">${awayRecord}</span></div>`;
+                    const vs = `<div class="vs">@</div>`;
+                    const home = `<div class="team"><img src="${homeLogo}" alt="${homeTeam.team.displayName} logo"><span class="rank">${homeRank}</span>${homeTeam.team.displayName}<span class="record">${homeRecord}</span></div>`;
+                    const time = formatEasternTime(event.date, 'ncaa');
+                    const channel = event.competitions[0].broadcasts?.[0]?.names?.join(', ') || 'TBD';
+                    gameDiv.innerHTML = `
+                        <div class="teams-container">${away} ${vs} ${home}</div>
+                        <div class="info-container">
+                            <div class="time">${time}</div>
+                            <div class="channel">Channel: ${channel}</div>
+                        </div>
+                    `;
+                    upcomingContainer.appendChild(gameDiv);
+                });
+            }
+            if (document.getElementById('ncaa').classList.contains('active') && !isCycling) {
+                startAutoScroll('ncaa', 428400);
+            }
+            updateTabVisibility();
+        } catch (error) {
+            console.error('Error fetching NCAA Football upcoming games from ESPN:', error);
+            leaguesWithGames['ncaa'] = hasGames;
+            updateTabVisibility();
+        }
+    }
+    async function fetchNCAABGames() {
+        const currentDate = new Date();
+        currentDate.setHours(16, 10, 0, 0);
+        const futureDate = new Date(currentDate);
+        futureDate.setDate(currentDate.getDate() + 7);
+        const currentContainer = document.getElementById('ncaab-current-games');
+        const upcomingContainer = document.getElementById('ncaab-upcoming-games');
+        let hasGames = false;
+        try {
+            const currentUrl = `https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard?dates=${formatDateForESPN(currentDate)}&groups=50`;
+            const currentResponse = await fetch(currentUrl);
+            if (!currentResponse.ok) throw new Error(`HTTP ${currentResponse.status}`);
+            const currentData = await currentResponse.json();
+            const currentGames = currentData.events?.filter(event => event.status.type.state === 'in') || [];
+            hasGames = currentGames.length > 0;
+            currentContainer.innerHTML = currentGames.length === 0 ? '<p class="no-games">No live Division I games today.</p>' : '';
+            currentGames.forEach(event => {
+                const gameDiv = document.createElement('div');
+                gameDiv.className = 'game';
+                const homeTeam = event.competitions[0].competitors.find(c => c.homeAway === 'home');
+                const awayTeam = event.competitions[0].competitors.find(c => c.homeAway === 'away');
+                const awayLogo = awayTeam.team.logo || 'https://placehold.co/40x40';
+                const homeLogo = homeTeam.team.logo || 'https://placehold.co/40x40';
+                const scoreClass = 'score live';
+                const awayRank = awayTeam.rank ? `#${awayTeam.rank}` : '';
+                const homeRank = homeTeam.rank ? `#${homeTeam.rank}` : '';
+                const awayRecord = formatRecord(awayTeam.records ? awayTeam.records[0]?.summary : '');
+                const homeRecord = formatRecord(homeTeam.records ? homeTeam.records[0]?.summary : '');
+                const away = `<div class="team away"><img src="${awayLogo}" alt="${awayTeam.team.displayName} logo"><span class="rank">${awayRank}</span>${awayTeam.team.displayName}<span class="record">${awayRecord}</span> <span class="${scoreClass}">${awayTeam.score || 0}</span></div>`;
+                const vs = `<div class="vs">@</div>`;
+                const home = `<div class="team"><img src="${homeLogo}" alt="${homeTeam.team.displayName} logo"><span class="rank">${homeRank}</span>${homeTeam.team.displayName}<span class="record">${homeRecord}</span> <span class="${scoreClass}">${homeTeam.score || 0}</span></div>`;
+                const channel = event.competitions[0].broadcasts?.[0]?.names?.join(', ') || 'TBD';
+                const situation = event.competitions[0].situation || {};
+                const period = situation.period ? `Q${situation.period}` : (event.status.type.description.toLowerCase().includes('overtime') ? 'OT' : event.status.type.shortDetail || 'Live');
+                const timeRemaining = event.status.displayClock || '';
+                const status = period;
+                const stats = timeRemaining ? `${timeRemaining}` : '';
+                gameDiv.innerHTML = `
+                    <div class="teams-container">${away} ${vs} ${home}</div>
+                    <div class="info-container">
+                        <div class="status">${status}</div>
+                        <div class="channel">Channel: ${channel}</div>
+                    </div>
+                    ${stats ? `<div class="stats">${stats}</div>` : ''}
+                `;
+                currentContainer.appendChild(gameDiv);
+            });
+            if (document.getElementById('ncaab').classList.contains('active') && !isCycling) {
+                startAutoScroll('ncaab', 428400);
+            }
+        } catch (error) {
+            console.error('Error fetching NCAAB live games:', error);
+            currentContainer.innerHTML = '<p class="no-games">Error fetching live games.</p>';
+        }
+        try {
+            const upcomingUrl = `https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard?dates=${formatDateForESPN(currentDate)}-${formatDateForESPN(futureDate)}&groups=50`;
+            const upcomingResponse = await fetch(upcomingUrl);
+            if (!upcomingResponse.ok) throw new Error(`HTTP ${upcomingResponse.status}`);
+            const upcomingData = await upcomingResponse.json();
+            const upcomingGames = upcomingData.events?.filter(event => {
+                const competitors = event.competitions[0].competitors;
+                return competitors.some(c => c.rank && c.rank <= 25) || event.status.type.state === 'pre';
+            }) || [];
+            hasGames = hasGames || upcomingGames.length > 0;
+            leaguesWithGames['ncaab'] = hasGames;
+            upcomingContainer.innerHTML = upcomingGames.length === 0 ? '<p class="no-games">No big games scheduled this week.</p>' : '';
+            upcomingGames.forEach(event => {
+                const gameDiv = document.createElement('div');
+                gameDiv.className = 'game';
+                const homeTeam = event.competitions[0].competitors.find(c => c.homeAway === 'home');
+                const awayTeam = event.competitions[0].competitors.find(c => c.homeAway === 'away');
+                const awayLogo = awayTeam.team.logo || 'https://placehold.co/40x40';
+                const homeLogo = homeTeam.team.logo || 'https://placehold.co/40x40';
+                const awayRank = awayTeam.rank ? `#${awayTeam.rank}` : '';
+                const homeRank = homeTeam.rank ? `#${homeTeam.rank}` : '';
+                const awayRecord = formatRecord(awayTeam.records ? awayTeam.records[0]?.summary : '');
+                const homeRecord = formatRecord(homeTeam.records ? homeTeam.records[0]?.summary : '');
+                const away = `<div class="team away"><img src="${awayLogo}" alt="${awayTeam.team.displayName} logo"><span class="rank">${awayRank}</span>${awayTeam.team.displayName}<span class="record">${awayRecord}</span></div>`;
+                const vs = `<div class="vs">@</div>`;
+                const home = `<div class="team"><img src="${homeLogo}" alt="${homeTeam.team.displayName} logo"><span class="rank">${homeRank}</span>${homeTeam.team.displayName}<span class="record">${homeRecord}</span></div>`;
+                const time = formatEasternTime(event.date, 'ncaab');
+                const channel = event.competitions[0].broadcasts?.[0]?.names?.join(', ') || 'TBD';
+                gameDiv.innerHTML = `
+                    <div class="teams-container">${away} ${vs} ${home}</div>
+                    <div class="info-container">
+                        <div class="time">${time}</div>
+                        <div class="channel">Channel: ${channel}</div>
+                    </div>
+                `;
+                upcomingContainer.appendChild(gameDiv);
+            });
+            if (document.getElementById('ncaab').classList.contains('active') && !isCycling) {
+                startAutoScroll('ncaab', 428400);
+            }
+            updateTabVisibility();
+        } catch (error) {
+            console.error('Error fetching NCAAB upcoming games:', error);
+            leaguesWithGames['ncaab'] = hasGames;
+            updateTabVisibility();
+        }
+    }
+    function fetchDGPTSchedule() {
+        const container = document.getElementById('dgpt-schedule');
+        if (!container) {
+            console.error('Container not found for dgpt-schedule');
+            return;
+        }
+        container.innerHTML = '<p class="no-games">Loading 2026 DGPT schedule...</p>';
+        const scheduleData = [
+            { event: 'Supreme Flight Open', date: 'Feb 20-22', location: 'Brooksville, FL', venue: 'Olympus Disc Golf Course' },
+            { event: 'Chess.com Invitational', date: 'Mar 6-8', location: 'Tucson, AZ', venue: 'TBD' },
+            { event: 'The Open at Austin', date: 'Mar 13-15', location: 'Austin, TX', venue: 'Harvey Penick Disc Golf Course' },
+            { event: 'Texas State Disc Golf Championships', date: 'Mar 27-29', location: 'Houston, TX', venue: 'TBD' },
+            { event: 'PDGA Champions Cup', date: 'Apr 9-12', location: 'Lynchburg, VA', venue: 'New London Tech' },
+            { event: 'Music City Open', date: 'Apr 16-18', location: 'Nashville, TN', venue: 'Cedar Hill Disc Golf Course' },
+            { event: 'Dynamic Discs Open', date: 'Apr 30-May 2', location: 'Emporia, KS', venue: 'Jones Park Courses' },
+            { event: 'Jonesboro Open', date: 'May 7-9', location: 'Jonesboro, AR', venue: 'Disc Side of Heaven' },
+            { event: 'OTB Open', date: 'May 14-16', location: 'Stockton, CA', venue: 'Swenson Park Disc Golf Course' },
+            { event: 'Portland Open', date: 'May 28-30', location: 'Portland, OR', venue: 'Glendoveer Disc Golf Course' },
+            { event: 'European Pro Major', date: 'Jun 4-6', location: 'TBD', venue: 'TBD' },
+            { event: 'Dynamic Discs Northwest Open', date: 'Jun 11-13', location: 'Shelton, WA', venue: 'Shelton Springs Disc Golf Course' },
+            { event: 'LWS Open at Idlewild', date: 'Jun 25-27', location: 'Burlington, KY', venue: 'Idlewild Disc Golf Course' },
+            { event: 'Preserve Championship', date: 'Jul 2-4', location: 'Clearwater, MN', venue: 'The Preserve' },
+            { event: 'Des Moines Challenge', date: 'Jul 9-11', location: 'Des Moines, IA', venue: 'TBD' },
+            { event: 'European Open', date: 'Jul 16-19', location: 'Nokia, Finland', venue: 'The Beast' },
+            { event: 'Ledgestone Open', date: 'Aug 6-8', location: 'Peoria, IL', venue: 'Multiple Courses' },
+            { event: 'PDGA Pro World Championships', date: 'Aug 18-22', location: 'Kensington, MI', venue: 'Toboggan Disc Golf Course' },
+            { event: 'Green Mountain Championship', date: 'Sep 3-5', location: 'Jeffersonville, VT', venue: 'Brewster Ridge & Fox Run Meadows' },
+            { event: 'MVP Open', date: 'Sep 10-12', location: 'Leicester, MA', venue: 'Maple Hill Disc Golf Course' },
+            { event: 'DGPT Playoffs', date: 'Sep 23-26', location: 'TBD', venue: 'TBD' },
+            { event: 'United States Disc Golf Championship', date: 'Oct 7-10', location: 'Rock Hill, SC', venue: 'Winthrop University Disc Golf Course' },
+            { event: 'DGPT Championship', date: 'Oct 14-17', location: 'Lynchburg, VA', venue: 'Ivy Hill' }
+        ];
+        console.log('Loading 2026 DGPT schedule');
+        container.innerHTML = `
+            <table class="schedule-table">
+                <thead>
+                    <tr>
+                        <th>Event</th>
+                        <th>Date</th>
+                        <th>Location</th>
+                        <th>Venue/Course</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${scheduleData.map(event => `
+                        <tr>
+                            <td>${event.event}</td>
+                            <td>${event.date}</td>
+                            <td>${event.location}</td>
+                            <td>${event.venue}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+            <p class="no-games">2026 DGPT Elite Series & PDGA Pro Major Schedule (as of August 27, 2025)</p>
+        `;
+        if (document.getElementById('dgpt').classList.contains('active') && !isCycling) {
+            startAutoScroll('dgpt', 171360);
+        }
+        updateDGPTCountdown();
+    }
+    async function fetchScores(league) {
+        if (league === 'ncaa') {
+            return fetchNCAAGames();
+        }
+        if (league === 'ncaab') {
+            return fetchNCAABGames();
+        }
+        if (league === 'nba') {
+            return fetchNBAGames();
+        }
+        if (league === 'dgpt') {
+            fetchDGPTSchedule();
+            return Promise.resolve();
+        }
+        if (league === 'video') {
+            if (player && player.playVideo && player.getPlayerState && player.getPlayerState() !== YT.PlayerState.UNSTARTED) {
+                try {
+                    player.playVideo();
+                } catch (err) {
+                    console.error('Error playing video:', err);
+                }
+            }
+            return Promise.resolve();
+        }
+        const currentDate = new Date();
+        currentDate.setHours(16, 10, 0, 0);
+        const tomorrowDate = new Date(currentDate);
+        tomorrowDate.setDate(currentDate.getDate() + 1);
+        const url = `https://site.api.espn.com/apis/site/v2/sports/${leagues[league]}/scoreboard?dates=${formatDateForESPN(currentDate)}-${formatDateForESPN(tomorrowDate)}`;
+        try {
+            const containerId = league === 'nfl' ? 'nfl-scores' : 'mlb-scores';
+            const container = document.getElementById(containerId);
+            if (!container) {
+                console.error(`Container not found for ${containerId}`);
+                return;
+            }
+            container.innerHTML = '';
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const data = await response.json();
+            const events = data.events ? filterTodayAndTomorrow(data.events) : [];
+            leaguesWithGames[league] = events.length > 0;
+            if (events.length === 0) {
+                container.innerHTML = '<p class="no-games">No games scheduled for today or tomorrow.</p>';
+                stopAutoScroll();
+            } else {
+                events.forEach(event => {
+                    const gameDiv = document.createElement('div');
+                    gameDiv.className = 'game';
+                    const homeTeam = event.competitions[0].competitors.find(c => c.homeAway === 'home');
+                    const awayTeam = event.competitions[0].competitors.find(c => c.homeAway === 'away');
+                    const awayLogo = awayTeam.team.logo || 'https://placehold.co/40x40';
+                    const homeLogo = homeTeam.team.logo || 'https://placehold.co/40x40';
+                    const isLive = event.status.type.state === 'in';
+                    const isCompleted = event.status.type.state === 'post';
+                    const isScheduled = event.status.type.state === 'pre';
+                    const scoreClass = isLive ? 'score live' : 'score';
+                    const awayRank = awayTeam.rank ? `#${awayTeam.rank}` : '';
+                    const homeRank = homeTeam.rank ? `#${homeTeam.rank}` : '';
+                    const awayRecord = formatRecord(awayTeam.records ? awayTeam.records[0]?.summary : '');
+                    const homeRecord = formatRecord(homeTeam.records ? homeTeam.records[0]?.summary : '');
+                    const away = `<div class="team away"><img src="${awayLogo}" alt="${awayTeam.team.displayName} logo">${awayTeam.team.displayName}<span class="record">${awayRecord}</span> <span class="${scoreClass}">${awayTeam.score || 0}</span></div>`;
+                    const vs = `<div class="vs">@</div>`;
+                    const home = `<div class="team"><img src="${homeLogo}" alt="${homeTeam.team.displayName} logo">${homeTeam.team.displayName}<span class="record">${homeRecord}</span> <span class="${scoreClass}">${homeTeam.score || 0}</span></div>`;
+                    const gameStartTime = new Date(event.date);
+                    const currentTime = new Date();
+                    currentTime.setHours(16, 10, 0, 0);
+                    const showTime = isScheduled && gameStartTime > currentTime;
+                    const time = showTime ? formatEasternTime(event.date, league) : '';
+                    const channel = event.competitions[0].broadcasts?.[0]?.names?.join(', ') || 'TBD';
+                    let status = isCompleted ? 'Final' : event.status.type.description;
+                    let stats = '';
+                    let graphic = '';
+                    if (league === 'mlb' && isLive) {
+                        const situation = event.competitions[0].situation || {};
+                        const inning = situation.inning ? `${situation.inning}${situation.topInning ? 'th Top' : 'th Bot'}` : 'Live';
+                        const count = (situation.balls != null && situation.strikes != null) ? `${situation.balls}-${situation.strikes} Count` : '';
+                        const outs = situation.outs != null ? `${situation.outs} Out${situation.outs !== 1 ? 's' : ''}` : '';
+                        const batter = situation.batter?.athlete?.displayName || 'Unknown';
+                        const pitcher = situation.pitcher?.athlete?.displayName || 'Unknown';
+                        status = inning;
+                        stats = [count, outs, `Batter: ${batter}`, `Pitcher: ${pitcher}`].filter(s => s).join(', ');
+                        const bases = {
+                            first: situation.onFirst ? 'active' : '',
+                            second: situation.onSecond ? 'active' : '',
+                            third: situation.onThird ? 'active' : ''
+                        };
+                        graphic = `<svg class="diamond" viewBox="0 0 100 100">
+                            <path d="M50 10 L90 50 L50 90 L10 50 Z" class="base ${bases.first}"/>
+                            <path d="M50 20 L80 50 L50 80 L20 50 Z" class="base ${bases.second}"/>
+                            <path d="M50 30 L70 50 L50 70 L30 50 Z" class="base ${bases.third}"/>
+                        </svg>`;
+                    } else if (league === 'nfl' && isLive) {
+                        const situation = event.competitions[0].situation || {};
+                        const quarter = situation.period ? `Q${situation.period}` : (event.status.type.description.toLowerCase().includes('overtime') ? 'OT' : 'Live');
+                        const timeRemaining = event.status.displayClock || '';
+                        status = quarter;
+                        stats = timeRemaining ? `${timeRemaining}` : '';
+                    }
+                    gameDiv.innerHTML = `
+                        <div class="teams-container">${away} ${vs} ${home}</div>
+                        <div class="info-container">
+                            ${time ? `<div class="time">${time}</div>` : ''}
+                            <div class="status">${status}</div>
+                            <div class="channel">Channel: ${channel}</div>
+                        </div>
+                        ${stats ? `<div class="stats">${stats}</div>` : ''}
+                        ${graphic}
+                    `;
+                    container.appendChild(gameDiv);
+                });
+                if (document.getElementById(league).classList.contains('active') && !isCycling) {
+                    startAutoScroll(containerId, 252000);
+                }
+            }
+            updateTabVisibility();
+        } catch (error) {
+            console.error(`Error fetching ${league} scores:`, error);
+            const containerId = league === 'nfl' ? 'nfl-scores' : 'mlb-scores';
+            const container = document.getElementById(containerId);
+            if (container) {
+                container.innerHTML = '<p class="no-games">Error fetching scores. Please try again later.</p>';
+            }
+            leaguesWithGames[league] = false;
+            stopAutoScroll();
+            updateTabVisibility();
+        }
+    }
+    async function fetchNBAGames() {
+        const currentDate = new Date();
+        currentDate.setHours(16, 10, 0, 0);
+        const tomorrowDate = new Date(currentDate);
+        tomorrowDate.setDate(currentDate.getDate() + 1);
+        const url = `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?dates=${formatDateForESPN(currentDate)}-${formatDateForESPN(tomorrowDate)}`;
+        try {
+            const container = document.getElementById('nba-scores');
+            if (!container) {
+                console.error('Container not found for nba-scores');
+                return;
+            }
+            container.innerHTML = '';
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const data = await response.json();
+            const events = data.events ? filterTodayAndTomorrow(data.events) : [];
+            leaguesWithGames['nba'] = events.length > 0;
+            if (events.length === 0) {
+                container.innerHTML = '<p class="no-games">No games scheduled for today or tomorrow.</p>';
+                stopAutoScroll();
+            } else {
+                events.forEach(event => {
+                    const gameDiv = document.createElement('div');
+                    gameDiv.className = 'game';
+                    const homeTeam = event.competitions[0].competitors.find(c => c.homeAway === 'home');
+                    const awayTeam = event.competitions[0].competitors.find(c => c.homeAway === 'away');
+                    const awayLogo = awayTeam.team.logo || 'https://placehold.co/40x40';
+                    const homeLogo = homeTeam.team.logo || 'https://placehold.co/40x40';
+                    const isLive = event.status.type.state === 'in';
+                    const isCompleted = event.status.type.state === 'post';
+                    const isScheduled = event.status.type.state === 'pre';
+                    const scoreClass = isLive ? 'score live' : 'score';
+                    const awayRecord = formatRecord(awayTeam.records ? awayTeam.records[0]?.summary : '');
+                    const homeRecord = formatRecord(homeTeam.records ? homeTeam.records[0]?.summary : '');
+                    const away = `<div class="team away"><img src="${awayLogo}" alt="${awayTeam.team.displayName} logo">${awayTeam.team.displayName}<span class="record">${awayRecord}</span> <span class="${scoreClass}">${awayTeam.score || 0}</span></div>`;
+                    const vs = `<div class="vs">@</div>`;
+                    const home = `<div class="team"><img src="${homeLogo}" alt="${homeTeam.team.displayName} logo">${homeTeam.team.displayName}<span class="record">${homeRecord}</span> <span class="${scoreClass}">${homeTeam.score || 0}</span></div>`;
+                    const gameStartTime = new Date(event.date);
+                    const currentTime = new Date();
+                    currentTime.setHours(16, 10, 0, 0);
+                    const showTime = isScheduled && gameStartTime > currentTime;
+                    const time = showTime ? formatEasternTime(event.date, 'nba') : '';
+                    const channel = event.competitions[0].broadcasts?.[0]?.names?.join(', ') || 'TBD';
+                    let status = isCompleted ? 'Final' : event.status.type.description;
+                    let stats = '';
+                    if (isLive) {
+                        const situation = event.competitions[0].situation || {};
+                        const period = situation.period ? `Q${situation.period}` : (event.status.type.description.toLowerCase().includes('overtime') ? 'OT' : 'Live');
+                        const timeRemaining = event.status.displayClock || '';
+                        status = period;
+                        stats = timeRemaining ? `${timeRemaining}` : '';
+                    }
+                    gameDiv.innerHTML = `
+                        <div class="teams-container">${away} ${vs} ${home}</div>
+                        <div class="info-container">
+                            ${time ? `<div class="time">${time}</div>` : ''}
+                            <div class="status">${status}</div>
+                            <div class="channel">Channel: ${channel}</div>
+                        </div>
+                        ${stats ? `<div class="stats">${stats}</div>` : ''}
+                    `;
+                    container.appendChild(gameDiv);
+                });
+                if (document.getElementById('nba').classList.contains('active') && !isCycling) {
+                    startAutoScroll('nba-scores', 252000);
+                }
+            }
+            updateTabVisibility();
+        } catch (error) {
+            console.error('Error fetching NBA scores:', error);
+            const container = document.getElementById('nba-scores');
+            if (container) {
+                container.innerHTML = '<p class="no-games">Error fetching scores. Please try again later.</p>';
+            }
+            leaguesWithGames['nba'] = false;
+            stopAutoScroll();
+            updateTabVisibility();
+        }
+    }
+    function updateAll() {
+        Object.keys(leagues).forEach(league => fetchScores(league));
+        updateDGPTCountdown();
+    }
+    document.querySelectorAll('.tabs .tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            if (isCycling) {
+                cycleTabs();
+            }
+            stopAutoScroll();
+            if (player && player.pauseVideo) {
+                try {
+                    player.pauseVideo();
+                } catch (err) {
+                    console.error('Error pausing video:', err);
+                }
+            }
+            document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.league').forEach(l => l.classList.remove('active'));
+            tab.classList.add('active');
+            const activeLeague = tab.dataset.league;
+            document.getElementById(activeLeague).classList.add('active');
+            const activeContainerId = activeLeague === 'ncaa' ? 'ncaa' : activeLeague === 'nfl' ? 'nfl-scores' : activeLeague === 'mlb' ? 'mlb-scores' : activeLeague === 'ncaab' ? 'ncaab' : activeLeague === 'nba' ? 'nba-scores' : activeLeague === 'dgpt' ? 'dgpt' : 'video';
+            if (activeLeague === 'video' && player && player.playVideo && player.getPlayerState && player.getPlayerState() !== YT.PlayerState.UNSTARTED) {
+                try {
+                    player.playVideo();
+                } catch (err) {
+                    console.error('Error playing video:', err);
+                }
+                return;
+            }
+            if (!isCycling && activeLeague !== 'video') {
+                fetchScores(activeLeague).then(() => {
+                    startAutoScroll(activeContainerId, activeLeague === 'ncaa' || activeLeague === 'ncaab' ? 428400 : activeLeague === 'dgpt' ? 171360 : 252000);
+                });
+            }
+        });
+    });
+    setInterval(updateAll, 86400000);
+    setInterval(updateDGPTCountdown, 60000);
+    updateAll();
+</script>
+</body>
+</html>
